@@ -27,6 +27,8 @@ class UNetBlock(nn.Module):
                 self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=4, stride=2, padding=1, bias=False)
                 self.norm = nn.BatchNorm2d(out_channels)
             self.activation = nn.LeakyReLU(0.2, inplace=True)
+            # 为接口一致性补上 dropout 属性（仅解码器使用）
+            self.dropout = None
         else:
             # 解码器：Convolution + BatchNorm + Dropout(0.5) + ReLU
             self.conv = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=4, stride=2, padding=1, bias=False)
