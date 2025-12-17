@@ -9,7 +9,7 @@
 - label 与 photo 空间变换需同步；颜色变换仅对 photo。
 """
 
-from typing import Callable, Tuple
+from typing import Callable, Optional, Tuple
 
 import torch
 import torchvision.transforms.functional as F
@@ -43,6 +43,8 @@ def build_transform(
     jitter: bool = True,
     normalize_mode: str = "tanh",
     horizontal_flip: bool = True,
+    color_jitter: Optional[Tuple[float, float, float, float]] = None,
+    scale_range: Optional[Tuple[float, float]] = None,
 ) -> Callable:
     """
     返回一个可调用 transform(label, photo) -> (label_t, photo_t)。
@@ -52,22 +54,70 @@ def build_transform(
     - jitter: 若为 True，先 resize 到 286 后随机裁剪回 image_size。
     - normalize_mode: photo 归一化模式，tanh 或 01。
     - horizontal_flip: 是否随机水平翻转（p=0.5）。
+    - color_jitter: (brightness, contrast, saturation, hue)，仅应用于 photo。
+      传 None 表示不做颜色抖动；例如 (0.2, 0.2, 0.2, 0.05)。
+    - scale_range: (min_scale, max_scale)，在 resize+jitter 前随机缩放，保持最长边比例；
+      仅做空间缩放，label/photo 同步；传 None 则不做额外缩放。
     """
+    cj_transform = (
+        transforms.ColorJitter(
+            brightness=color_jitter[0],
+            contrast=color_jitter[1],
+            saturation=color_jitter[2],
+            hue=color_jitter[3],
+        )
+        if color_jitter is not None
+        else None
+    )
 
     def _transform(label: Image.Image, photo: Image.Image):
         # 同步 resize/jitter
         if jitter:
-            label = F.resize(label, 286, interpolation=transforms.InterpolationMode.BICUBIC)
-            photo = F.resize(photo, 286, interpolation=transforms.InterpolationMode.BICUBIC)
-            label, photo = _random_crop_pair(label, photo, image_size)
+            base_size = 286
+            target_resize = base_size
+            # 额外随机缩放（在 jitter 前进行）
+            if scale_range is not None:
+                scale = random.uniform(scale_range[0], scale_range[1])
+                target_resize = int(base_size * scale)
+
+            # 先缩放到 target_resize，之后再根据需要裁剪/补缩放回 image_size
+            label = F.resize(label, target_resize, interpolation=transforms.InterpolationMode.BICUBIC)
+            photo = F.resize(photo, target_resize, interpolation=transforms.InterpolationMode.BICUBIC)
+
+            # 避免 target_resize < image_size 时随机裁剪报错
+            crop_size = min(image_size, target_resize)
+            label, photo = _random_crop_pair(label, photo, crop_size)
+
+            # 若 crop_size 小于期望的 image_size，则再统一放缩到 image_size
+            if crop_size != image_size:
+                label = F.resize(label, image_size, interpolation=transforms.InterpolationMode.BICUBIC)
+                photo = F.resize(photo, image_size, interpolation=transforms.InterpolationMode.BICUBIC)
         else:
-            label = F.resize(label, image_size, interpolation=transforms.InterpolationMode.BICUBIC)
-            photo = F.resize(photo, image_size, interpolation=transforms.InterpolationMode.BICUBIC)
+            target_resize = image_size
+            if scale_range is not None:
+                scale = random.uniform(scale_range[0], scale_range[1])
+                target_resize = int(image_size * scale)
+
+            label = F.resize(label, target_resize, interpolation=transforms.InterpolationMode.BICUBIC)
+            photo = F.resize(photo, target_resize, interpolation=transforms.InterpolationMode.BICUBIC)
+
+            # 裁剪尺寸不能超过当前图像尺寸
+            crop_size = min(image_size, target_resize)
+            label, photo = _random_crop_pair(label, photo, crop_size)
+
+            # 若裁剪结果尺寸小于 image_size，再放缩到统一尺寸
+            if crop_size != image_size:
+                label = F.resize(label, image_size, interpolation=transforms.InterpolationMode.BICUBIC)
+                photo = F.resize(photo, image_size, interpolation=transforms.InterpolationMode.BICUBIC)
 
         # 同步水平翻转
         if horizontal_flip and random.random() < 0.5:
             label = F.hflip(label)
             photo = F.hflip(photo)
+
+        # 仅对 photo 做颜色抖动
+        if cj_transform is not None:
+            photo = cj_transform(photo)
 
         # 转 tensor
         label_t = F.to_tensor(label)  # 归一到 [0,1]
