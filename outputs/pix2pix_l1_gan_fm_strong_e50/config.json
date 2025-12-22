@@ -2,15 +2,17 @@
   "data_root": "data",
   "split_index": "data\\splits\\cityscapes_split_seed42.json",
   "output_dir": "outputs",
-  "exp_name": "pix2pix_debug",
-  "epochs": 1,
+  "exp_name": "pix2pix_l1_gan_fm_strong_e50",
+  "epochs": 50,
   "batch_size": 1,
   "lr": 0.0002,
-  "start_decay_epoch": 100,
+  "start_decay_epoch": 25,
   "lambda_l1": 100.0,
+  "lambda_fm": 10.0,
   "aug_mode": "strong",
   "num_val_samples": 10,
   "save_interval": 10,
+  "resume": null,
   "device": "cpu",
-  "timestamp": "2025-12-22T11:10:28.045038"
+  "timestamp": "2025-12-22T19:59:12.439859"
 }
