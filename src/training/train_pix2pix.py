@@ -327,6 +327,12 @@ def main():
         help="Save checkpoint every N epochs",
     )
     parser.add_argument(
+        "--resume",
+        type=Path,
+        default=None,
+        help="Resume training from checkpoint (path to .pth file)",
+    )
+    parser.add_argument(
         "--device",
         type=str,
         default="cuda" if torch.cuda.is_available() else "cpu",
@@ -437,6 +443,7 @@ def main():
     writer = SummaryWriter(log_dir=exp_dir / "logs" / "tensorboard")
 
     best_val_l1 = float("inf")
+    start_epoch = 1
     history = {
         "epoch": [],
         "train_g_total": [],
@@ -449,8 +456,32 @@ def main():
         "val_mae": [],
     }
 
-    print(f"\nStarting Pix2Pix training (aug_mode={args.aug_mode})...")
-    for epoch in range(1, args.epochs + 1):
+    # 恢复训练（如果指定了 checkpoint）
+    if args.resume is not None and args.resume.exists():
+        print(f"\n🔄 从 checkpoint 恢复训练: {args.resume}")
+        checkpoint = torch.load(args.resume, map_location=device, weights_only=False)
+        
+        generator.load_state_dict(checkpoint["generator_state_dict"])
+        discriminator.load_state_dict(checkpoint["discriminator_state_dict"])
+        optimizer_G.load_state_dict(checkpoint["optimizer_G_state_dict"])
+        optimizer_D.load_state_dict(checkpoint["optimizer_D_state_dict"])
+        scheduler_G.load_state_dict(checkpoint["scheduler_G_state_dict"])
+        scheduler_D.load_state_dict(checkpoint["scheduler_D_state_dict"])
+        
+        start_epoch = checkpoint["epoch"] + 1
+        best_val_l1 = checkpoint.get("val_l1", float("inf"))
+        
+        # 恢复 history（如果存在）
+        history_file = exp_dir / "logs" / "history_pix2pix.json"
+        if history_file.exists():
+            with open(history_file, "r", encoding="utf-8") as f:
+                history = json.load(f)
+        
+        print(f"✅ 已恢复到 epoch {start_epoch - 1}, best_val_l1: {best_val_l1:.4f}")
+    else:
+        print(f"\n🚀 开始新的 Pix2Pix 训练 (aug_mode={args.aug_mode})...")
+
+    for epoch in range(start_epoch, args.epochs + 1):
         # 训练
         (
             train_g_total,
@@ -541,6 +572,7 @@ def main():
                     "train_g_l1": train_g_l1,
                     "train_d": train_d,
                     "val_l1": val_l1,
+                    "history": history,  # 保存 history 以便恢复
                 },
                 exp_dir / "checkpoints" / f"checkpoint_epoch_{epoch:03d}.pth",
             )
