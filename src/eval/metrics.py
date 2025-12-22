@@ -133,13 +133,16 @@ def evaluate_batch(pred, target):
         target: 真实图像，tensor [B, C, H, W]
     
     Returns:
-        dict: {'psnr': float, 'ssim': float, 'mae': float}
+        dict: {'l1': float, 'psnr': float, 'ssim': float, 'mae': float}
     """
     psnr = calculate_psnr(pred, target)
     ssim = calculate_ssim(pred, target)
     mae = calculate_mae(pred, target)
+    # L1 损失和 MAE 是一样的（都是平均绝对误差）
+    l1 = mae
     
     return {
+        'l1': l1,
         'psnr': psnr,
         'ssim': ssim,
         'mae': mae
