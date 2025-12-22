@@ -9,7 +9,7 @@ Pix2Pix 损失函数工具模块。
 
 import torch
 import torch.nn as nn
-from adversarial_loss import (
+from src.losses.adversarial_loss import (
     generator_adversarial_loss,
     discriminator_adversarial_loss,
     generator_adversarial_loss_with_logits,

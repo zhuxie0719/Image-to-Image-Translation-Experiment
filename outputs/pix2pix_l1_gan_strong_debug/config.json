@@ -1,0 +1,16 @@
+{
+  "data_root": "data",
+  "split_index": "data\\splits\\cityscapes_split_seed42.json",
+  "output_dir": "outputs",
+  "exp_name": "pix2pix_l1_gan_strong_debug",
+  "epochs": 5,
+  "batch_size": 1,
+  "lr": 0.0002,
+  "start_decay_epoch": 100,
+  "lambda_l1": 100.0,
+  "aug_mode": "strong",
+  "num_val_samples": 10,
+  "save_interval": 10,
+  "device": "cpu",
+  "timestamp": "2025-12-22T11:13:21.830541"
+}
