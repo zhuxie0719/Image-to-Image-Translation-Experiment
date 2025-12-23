@@ -1,0 +1,18 @@
+{
+  "data_root": "data",
+  "split_index": "data/splits/cityscapes_split_seed42.json",
+  "output_dir": "outputs",
+  "exp_name": "pix2pix_l1_gan_perc_strong_e50",
+  "epochs": 50,
+  "batch_size": 1,
+  "lr": 0.0002,
+  "start_decay_epoch": 25,
+  "lambda_l1": 100.0,
+  "lambda_perc": 0.1,
+  "aug_mode": "strong",
+  "num_val_samples": 10,
+  "save_interval": 10,
+  "resume": null,
+  "device": "cuda",
+  "timestamp": "2025-12-23T01:46:51.769156"
+}

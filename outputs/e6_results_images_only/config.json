@@ -1,0 +1,18 @@
+{
+  "data_root": "/kaggle/input/cityspace/data",
+  "split_index": "/kaggle/input/cityspace/data/splits/cityscapes_split_seed42.json",
+  "output_dir": "/kaggle/working/outputs",
+  "exp_name": "pix2pix_l1_gan_fm_strong_e50",
+  "epochs": 50,
+  "batch_size": 1,
+  "lr": 0.0002,
+  "start_decay_epoch": 25,
+  "lambda_l1": 100.0,
+  "lambda_fm": 10.0,
+  "aug_mode": "strong",
+  "num_val_samples": 10,
+  "save_interval": 10,
+  "resume": null,
+  "device": "cuda",
+  "timestamp": "2025-12-22T12:27:36.223704"
+}
